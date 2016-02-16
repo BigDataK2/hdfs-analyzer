@@ -15,6 +15,8 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 object HdfsAnalyzer {
 
+  val GB = 1024 * 1024 * 1024
+
   def main(args: Array[String]) {
 
     val sqlContext = initSqlContext()
@@ -43,7 +45,7 @@ object HdfsAnalyzer {
          PARTITION(dt=${options.dt})
          SELECT
             app.name,
-            size,
+            CAST(size AS DOUBLE) / $GB,
             fileCnt
          FROM usageReport
        """.stripMargin)

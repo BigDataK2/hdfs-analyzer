@@ -36,7 +36,7 @@ class HdfsAnalyzerTest extends FunSuite with BeforeAndAfterAll with BeforeAndAft
       """
          CREATE TABLE IF NOT EXISTS stats.usage_report (
             application_name STRING,
-            total_size BIGINT,
+            total_size DOUBLE,
             total_file_count BIGINT
          )
          PARTITIONED BY (dt STRING)
@@ -60,13 +60,13 @@ class HdfsAnalyzerTest extends FunSuite with BeforeAndAfterAll with BeforeAndAft
       .collect()
 
     val expectations = Map(
-      "projectA" -> (44484250, 3),
-      "projectB" -> (22242125, 2)
+      "projectA" -> (0.04, 3),
+      "projectB" -> (0.02, 2)
     )
 
     for(res <- results) {
       val appName = res.getString(0)
-      val totalSize = res.getLong(1)
+      val totalSize = "%.2f".format(res.getDouble(1)).toDouble
       val fileCnt = res.getLong(2)
       assert(expectations(appName) === (totalSize, fileCnt))
     }
