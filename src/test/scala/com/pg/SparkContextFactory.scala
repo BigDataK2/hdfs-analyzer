@@ -5,11 +5,17 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 object SparkContextFactory {
 
-  val conf = new SparkConf().set("spark.driver.allowMultipleContexts", "true")
-  val sc: SparkContext = new SparkContext("local[4]", "sc", conf)
-  val sqlContext: TestHiveContext = new TestHiveContext(sc)
+  private val conf = new SparkConf()
+    .setAppName("TestEnv")
+    .setMaster("local[4]")
+    .set("spark.executor.memory", "1g")
+    .set("spark.driver.allowMultipleContexts", "true")
+
+  private val sc: SparkContext = new SparkContext(conf)
+  private val sqlContext: TestHiveContext = new TestHiveContext(sc)
 
   def getSqlContext = sqlContext
+
   def getSparkContext = sc
 
 }

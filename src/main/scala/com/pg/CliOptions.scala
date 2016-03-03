@@ -20,7 +20,7 @@ class CliOptions(arglist: List[String]) extends Serializable {
 
   def getValueInt(s: Symbol): Int = {
     def value = optionMap.get(s)
-    if(value == None){
+    if (value.isEmpty) {
       return -1
     }
     value.get.toString.toInt

@@ -9,12 +9,17 @@ class HdfsAnalyzerTest extends FunSuite with BeforeAndAfterAll with BeforeAndAft
 
   override def beforeAll() {
     sqlContext = SparkContextFactory.getSqlContext
-    sqlContext.sql( """CREATE DATABASE IF NOT EXISTS stats""")
-    sqlContext.sql( """CREATE DATABASE IF NOT EXISTS dba""")
-    sqlContext.sql( """CREATE DATABASE IF NOT EXISTS dbb""")
 
-    sqlContext.sql( """DROP TABLE IF EXISTS stats.fsimage""")
-    sqlContext.sql( """
+    sqlContext.sql("DROP DATABASE IF EXISTS stats")
+    sqlContext.sql("DROP DATABASE IF EXISTS dba")
+    sqlContext.sql("DROP DATABASE IF EXISTS dbb")
+
+    sqlContext.sql("CREATE DATABASE stats")
+    sqlContext.sql("CREATE DATABASE dba")
+    sqlContext.sql("CREATE DATABASE dbb")
+
+    sqlContext.sql(
+      """
         CREATE TABLE IF NOT EXISTS stats.fsimage (
               path STRING,
               replication INT,
@@ -33,7 +38,7 @@ class HdfsAnalyzerTest extends FunSuite with BeforeAndAfterAll with BeforeAndAft
         ROW FORMAT DELIMITED
         FIELDS TERMINATED BY '\t'
         STORED AS TEXTFILE
-                    """)
+      """.stripMargin)
 
     sqlContext.sql(
       """
@@ -47,30 +52,31 @@ class HdfsAnalyzerTest extends FunSuite with BeforeAndAfterAll with BeforeAndAft
          FIELDS TERMINATED BY '\t'
          STORED AS TEXTFILE
       """.stripMargin)
-  }
 
-  before {
-    sqlContext.sql( """LOAD DATA LOCAL INPATH 'src/test/resources/fsimage.txt'
+    sqlContext.sql(
+      """LOAD DATA LOCAL INPATH 'src/test/resources/fsimage.txt'
          OVERWRITE INTO TABLE stats.fsimage PARTITION(dt=20160101)""")
   }
 
   test("calculate total HDFS usage") {
-    val options = new CliOptions(List("--dt", "20160101"))
+    val dt: String = "20160101"
+
+    val options = new CliOptions(List("--dt", dt))
     val appConfig = new AppConfig(sqlContext)
     HdfsAnalyzer.makeHdfsUsageReport(sqlContext, appConfig, options)
 
     val results = sqlContext
-      .sql("SELECT application_name, total_size, total_file_count FROM stats.usage_report WHERE dt=20160101")
+      .sql(s"SELECT application_name, total_size, total_file_count FROM stats.usage_report WHERE dt=$dt")
       .collect()
 
     val expectations = Map(
-      "projectA" -> (0.04, 3),
-      "projectB" -> (0.02, 2)
+      "projectA" -> ("0,04", 3),
+      "projectB" -> ("0,02", 2)
     )
 
-    for(res <- results) {
+    for (res <- results) {
       val appName = res.getString(0)
-      val totalSize = "%.2f".format(res.getDouble(1)).toDouble
+      val totalSize = "%.2f".format(res.getDouble(1))
       val fileCnt = res.getLong(2)
       assert(expectations(appName) === (totalSize, fileCnt))
     }

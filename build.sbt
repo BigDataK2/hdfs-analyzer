@@ -1,6 +1,8 @@
 name := "hdfs-analyzer"
 
-fork :=true
+fork := true
+
+parallelExecution in Test := false
 
 version := "1.0"
 

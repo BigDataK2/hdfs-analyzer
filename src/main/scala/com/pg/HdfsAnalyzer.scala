@@ -1,5 +1,6 @@
 package com.pg
 
+import com.pg.model.{HdfsObject, Application}
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -35,7 +36,7 @@ object HdfsAnalyzer {
     storeInHive(sqlContext, hdfsUsageReport, options)
   }
 
-  def storeInHive(sqlContext: HiveContext, usageReport: Iterable[AppUsage], options: CliOptions) = {
+  private def storeInHive(sqlContext: HiveContext, usageReport: Iterable[AppUsage], options: CliOptions) = {
     import sqlContext.implicits._
     sqlContext.sparkContext.parallelize(usageReport.toSeq).toDF().registerTempTable("usageReport")
 
@@ -51,13 +52,13 @@ object HdfsAnalyzer {
        """.stripMargin)
   }
 
-  def initSqlContext() = {
+  private def initSqlContext() = {
     val conf = new SparkConf().setAppName(s"HDFS Analyzer")
     val sc = new SparkContext(conf)
     new HiveContext(sc)
   }
 
-  def getLatestFsImageData(sqlContext: HiveContext, dt: String) = {
+  private def getLatestFsImageData(sqlContext: HiveContext, dt: String) = {
     val stmt =
       s"""
          SELECT
@@ -84,10 +85,9 @@ object HdfsAnalyzer {
   }
 
   /**
-   *
    * @return (Application, (total size, number of files))
    */
-  def calculateTotalHdfsUsage(sqlContext: HiveContext, apps: Iterable[Application], appConfig: AppConfig, options: CliOptions) = {
+  private def calculateTotalHdfsUsage(sqlContext: HiveContext, apps: Iterable[Application], appConfig: AppConfig, options: CliOptions) = {
     val fsimage = getLatestFsImageData(sqlContext, options.dt)
 
     val paths = appConfig.getAllHdfsPathsToMonitor(apps)
@@ -108,12 +108,11 @@ object HdfsAnalyzer {
     apps
       .map(app => {
       (app, app.hdfsDirs.aggregate((0L, 0L))((acc, path) => {
-        val toAdd = groupedPaths.get(path).getOrElse((0L,0L))
+        val toAdd = groupedPaths.getOrElse(path, (0L, 0L))
         (acc._1 + toAdd._1, acc._2 + toAdd._2)
       }, { case ((s1, fc1), (s2, fc2)) => (s1 + s2, fc1 + fc2) }
       ))})
       .map{ case (app, (size, fileCnt)) => AppUsage(app, size, fileCnt)}
-
   }
 
 }
