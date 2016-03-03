@@ -10,6 +10,9 @@ class HdfsAnalyzerTest extends FunSuite with BeforeAndAfterAll with BeforeAndAft
   override def beforeAll() {
     sqlContext = SparkContextFactory.getSqlContext
     sqlContext.sql( """CREATE DATABASE IF NOT EXISTS stats""")
+    sqlContext.sql( """CREATE DATABASE IF NOT EXISTS dba""")
+    sqlContext.sql( """CREATE DATABASE IF NOT EXISTS dbb""")
+
     sqlContext.sql( """DROP TABLE IF EXISTS stats.fsimage""")
     sqlContext.sql( """
         CREATE TABLE IF NOT EXISTS stats.fsimage (
@@ -53,7 +56,8 @@ class HdfsAnalyzerTest extends FunSuite with BeforeAndAfterAll with BeforeAndAft
 
   test("calculate total HDFS usage") {
     val options = new CliOptions(List("--dt", "20160101"))
-    HdfsAnalyzer.makeHdfsUsageReport(sqlContext, AppConfig.readAppsFromConf(), options)
+    val appConfig = new AppConfig(sqlContext)
+    HdfsAnalyzer.makeHdfsUsageReport(sqlContext, appConfig, options)
 
     val results = sqlContext
       .sql("SELECT application_name, total_size, total_file_count FROM stats.usage_report WHERE dt=20160101")

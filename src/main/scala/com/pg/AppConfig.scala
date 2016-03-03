@@ -1,9 +1,13 @@
 package com.pg
 
 import com.typesafe.config.ConfigFactory
+import org.apache.spark.sql.hive.HiveContext
+import scala.collection.GenTraversableOnce
 import scala.collection.JavaConversions._
 
-object AppConfig {
+class AppConfig(sqlContext: HiveContext) {
+
+  val hiveExtractor = new HiveExtractor(sqlContext)
 
   def readAppsFromConf() = {
     val conf = ConfigFactory.load("projects")
@@ -23,6 +27,7 @@ object AppConfig {
 
   def getAllHdfsPathsToMonitor(apps: Iterable[Application]) = {
     val hdfsDirPaths = getAllHdfsDirs(apps)
+    val hdfsHivePaths = hiveExtractor.getAllHdfsLocationsFromHive(apps)
     val allPaths = hdfsDirPaths
     println(allPaths)
     allPaths

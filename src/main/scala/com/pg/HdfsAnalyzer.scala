@@ -6,8 +6,6 @@ import org.apache.spark.{SparkConf, SparkContext}
 /**
  * todo:
  * refactor
- * write some meaningful tests
- * tests for reading configuration (optional)
  * include replication factor in size calculations
  * store results in hive table
  * extract paths from hive db / table
@@ -15,23 +13,25 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 object HdfsAnalyzer {
 
-  val GB = 1024 * 1024 * 1024
+  val MB = 1024 * 1024
+  val GB = MB * 1024
+  val TB = GB * 1024
+  val UNIT = GB
 
   def main(args: Array[String]) {
 
     val sqlContext = initSqlContext()
-    val applications = AppConfig.readAppsFromConf()
+    val appConfig = new AppConfig(sqlContext)
 
     val options = new CliOptions(args.toList)
 
-    makeHdfsUsageReport(sqlContext, applications, options)
-
-    //import sqlContext.implicits._
+    makeHdfsUsageReport(sqlContext, appConfig, options)
 
   }
 
-  def makeHdfsUsageReport(sqlContext: HiveContext, applications: List[Application], options: CliOptions) = {
-    val hdfsUsageReport = calculateTotalHdfsUsage(sqlContext, applications, options)
+  def makeHdfsUsageReport(sqlContext: HiveContext, appConfig: AppConfig, options: CliOptions) = {
+    val applications = appConfig.readAppsFromConf()
+    val hdfsUsageReport = calculateTotalHdfsUsage(sqlContext, applications, appConfig, options)
     storeInHive(sqlContext, hdfsUsageReport, options)
   }
 
@@ -45,7 +45,7 @@ object HdfsAnalyzer {
          PARTITION(dt=${options.dt})
          SELECT
             app.name,
-            CAST(size AS DOUBLE) / $GB,
+            CAST(size AS DOUBLE) / $UNIT,
             fileCnt
          FROM usageReport
        """.stripMargin)
@@ -63,16 +63,16 @@ object HdfsAnalyzer {
          SELECT
           path,
           replication,
-         |mod_time,
-         |access_time,
-         |block_size,
-         |num_blocks,
-         |file_size,
-         |namespace_quota,
-         |diskspace_quota,
-         |perms,
-         |username,
-         |groupname
+          mod_time,
+          access_time,
+          block_size,
+          num_blocks,
+          file_size,
+          namespace_quota,
+          diskspace_quota,
+          perms,
+          username,
+          groupname
          FROM stats.fsimage
          WHERE dt = $dt
        """.stripMargin
@@ -87,10 +87,10 @@ object HdfsAnalyzer {
    *
    * @return (Application, (total size, number of files))
    */
-  def calculateTotalHdfsUsage(sqlContext: HiveContext, apps: Iterable[Application], options: CliOptions) = {
+  def calculateTotalHdfsUsage(sqlContext: HiveContext, apps: Iterable[Application], appConfig: AppConfig, options: CliOptions) = {
     val fsimage = getLatestFsImageData(sqlContext, options.dt)
 
-    val paths = AppConfig.getAllHdfsPathsToMonitor(apps)
+    val paths = appConfig.getAllHdfsPathsToMonitor(apps)
 
     val groupedPaths =
       fsimage
