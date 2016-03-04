@@ -24,28 +24,28 @@ class HiveExtractorTest extends FunSuite with BeforeAndAfterAll with BeforeAndAf
     sqlContext.sql("CREATE TABLE dbA.tab3 (a STRING) LOCATION 'file:///tmp/db.A/tab3'")
   }
 
-  test("list tables from non-empty db") {
-    val tables = hiveExtractor.getAllTablesFromDb("dbA")
+  test("should list tables from non-empty db") {
+    val tables = hiveExtractor.getAllTables("dbA")
 
     tables should have size 3
     tables should contain allOf ("tab1", "tab2", "tab3")
   }
 
-  test("list tables from empty db") {
-    val tables = hiveExtractor.getAllTablesFromDb("dbB")
+  test("should list tables from empty db") {
+    val tables = hiveExtractor.getAllTables("dbB")
 
     tables should have size 0
   }
 
-  test("get locations of tables from non-empty db") {
-    val locations = hiveExtractor.getHDFSPathsFromHive("dbA")
+  test("should get locations of tables from non-empty db") {
+    val locations = hiveExtractor.getHdfsLocationsForTablesInDb("dbA")
 
     locations should have size 3
     locations should contain allOf ("/tmp/db.A/tab1", "/tmp/db.A/tab2", "/tmp/db.A/tab3")
   }
 
-  test("get locations of tables from empty db") {
-    val locations = hiveExtractor.getHDFSPathsFromHive("dbB")
+  test("should get locations of tables from empty db") {
+    val locations = hiveExtractor.getHdfsLocationsForTablesInDb("dbB")
 
     locations should have size 0
   }

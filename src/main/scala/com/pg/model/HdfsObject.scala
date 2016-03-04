@@ -1,17 +1,13 @@
 package com.pg.model
 
-case class HdfsObject(path: String, replication: Int, modTime: String, accessTime: String, blockSize: Long,
+case class HdfsObject(path: Path, replication: Int, modTime: String, accessTime: String, blockSize: Long,
                       numBlocks: Int, fileSize: Long, namespaceQuota: Int, diskspaceQuota: Int,
-                      perms: String, username: String, groupname: String) {
+                      perms: String, user: String, group: String) {
 
-  // check if this HdfsObject is under any of the paths from 'paths' list
-  def isContainedWithin(paths: List[String]): Boolean = {
-    paths.exists(p => path.startsWith(p))
-  }
+  def isFile = replication > 0
 
-  // for every path in the list returns only these that contain this HdfsObject
-  def filterPaths(paths: List[String]): List[(String, HdfsObject)] = {
-    for (p <- paths; if path.startsWith(p))
-      yield (p, this)
+  // check if this HdfsObject is under any of the paths from pathsList
+  def isContainedWithin(pathsList: Iterable[Path]): Boolean = {
+    pathsList.exists(p => path.startsWith(p))
   }
 }

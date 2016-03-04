@@ -3,7 +3,7 @@ package com.pg
 import org.apache.spark.sql.hive.test.TestHiveContext
 import org.scalatest._
 
-class HdfsAnalyzerTest extends FunSuite with BeforeAndAfterAll with BeforeAndAfter with Matchers {
+class HdfsAnalyzerAppTest extends FunSuite with BeforeAndAfterAll with BeforeAndAfter with Matchers {
 
   var sqlContext: TestHiveContext = _
 
@@ -43,9 +43,10 @@ class HdfsAnalyzerTest extends FunSuite with BeforeAndAfterAll with BeforeAndAft
     sqlContext.sql(
       """
          CREATE TABLE IF NOT EXISTS stats.usage_report (
-            application_name STRING,
-            total_size DOUBLE,
-            total_file_count BIGINT
+            project_name STRING,
+            total_size_gb DOUBLE,
+            total_file_count BIGINT,
+            mod_timestamp INT
          )
          PARTITIONED BY (dt STRING)
          ROW FORMAT DELIMITED
@@ -53,32 +54,38 @@ class HdfsAnalyzerTest extends FunSuite with BeforeAndAfterAll with BeforeAndAft
          STORED AS TEXTFILE
       """.stripMargin)
 
+    sqlContext.sql("CREATE TABLE dbA.tab1 (a STRING) LOCATION 'file:///tmp/db.A/tab1'")
+
     sqlContext.sql(
       """LOAD DATA LOCAL INPATH 'src/test/resources/fsimage.txt'
          OVERWRITE INTO TABLE stats.fsimage PARTITION(dt=20160101)""")
   }
 
-  test("calculate total HDFS usage") {
+  test("should make hdfs usage report") {
     val dt: String = "20160101"
 
     val options = new CliOptions(List("--dt", dt))
     val appConfig = new AppConfig(sqlContext)
-    HdfsAnalyzer.makeHdfsUsageReport(sqlContext, appConfig, options)
+    HdfsAnalyzerApp.makeHdfsUsageReport(sqlContext, appConfig, options)
 
-    val results = sqlContext
-      .sql(s"SELECT application_name, total_size, total_file_count FROM stats.usage_report WHERE dt=$dt")
+    val results = sqlContext.sql(
+      s"""
+          SELECT project_name, total_size_gb, total_file_count, mod_timestamp
+          FROM stats.usage_report WHERE dt=$dt
+        """.stripMargin)
       .collect()
 
     val expectations = Map(
-      "projectA" -> ("0,04", 3),
-      "projectB" -> ("0,02", 2)
+      "projectA" ->("0,12", 3, 1447941540), // 2015-11-19 14:59 GMT+1
+      "projectB" ->("0,02", 1, 1447811940)  // 2015-11-18 02:59 GMT+1
     )
 
     for (res <- results) {
-      val appName = res.getString(0)
-      val totalSize = "%.2f".format(res.getDouble(1))
-      val fileCnt = res.getLong(2)
-      assert(expectations(appName) === (totalSize, fileCnt))
+      val projectName = res.getString(0)
+      val totalSizeGb = "%.2f".format(res.getDouble(1))
+      val filesCount = res.getLong(2)
+      val modTime = res.getInt(3)
+      assert(expectations(projectName) === (totalSizeGb, filesCount, modTime))
     }
   }
 

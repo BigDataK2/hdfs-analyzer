@@ -1,17 +1,16 @@
 package com.pg.hive
 
-import com.pg.model.Application
 import org.apache.spark.sql.hive.HiveContext
 
 class HiveExtractor(sqlContext: HiveContext) {
 
-  private[hive] def getAllTablesFromDb(hiveDb: String) = {
+  private[hive] def getAllTables(hiveDb: String) = {
     sqlContext.sql(s"use $hiveDb")
     sqlContext.sql("SHOW TABLES").collect().map(_.getString(0))
   }
 
-  private[hive] def getHDFSPathsFromHive(hiveDb: String) = {
-    val tables = getAllTablesFromDb(hiveDb)
+  def getHdfsLocationsForTablesInDb(hiveDb: String) = {
+    val tables = getAllTables(hiveDb)
     tables.map { table =>
       val rows = sqlContext.sql(s"DESCRIBE FORMATTED $table").collect()
         .map(r => if (r.length > 0) r.getString(0) else "")
@@ -23,9 +22,5 @@ class HiveExtractor(sqlContext: HiveContext) {
       // "Location:\tfile:/a/b/c"
       locationRow(0).split("\t")(1).trim.stripPrefix("file:")
     }
-  }
-
-  def getAllHdfsLocationsFromHive(apps: Iterable[Application]) = {
-    apps.flatMap(app => getHDFSPathsFromHive(app.hiveDb)).toList
   }
 }

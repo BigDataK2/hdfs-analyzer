@@ -17,7 +17,8 @@ libraryDependencies ++= Seq(
   "org.apache.spark" % "spark-sql_2.10" % "1.3.1",
   "org.apache.spark" % "spark-hive_2.10" % "1.3.1",
   "log4j" % "log4j" % "1.2.15" exclude("javax.jms", "jms") exclude("com.sun.jdmk", "jmxtools") exclude("com.sun.jmx", "jmxri"),
-  "me.lessis" %% "courier" % "0.1.3"
+  "me.lessis" %% "courier" % "0.1.3",
+  "com.github.nscala-time" %% "nscala-time" % "2.10.0"
 )
 
 excludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
