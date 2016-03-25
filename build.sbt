@@ -9,18 +9,20 @@ version := "1.0"
 scalaVersion := "2.10.4"
 
 libraryDependencies ++= Seq(
-  "org.datanucleus" % "datanucleus-api-jdo" % "3.2.6" % "provided",
-  "org.datanucleus" % "datanucleus-rdbms" % "3.2.9" % "provided",
-  "org.datanucleus" % "datanucleus-core" % "3.2.10" % "provided",
-  "org.scalatest" % "scalatest_2.10" % "2.2.1",
-  "org.apache.spark" % "spark-core_2.10" % "1.3.1",
-  "org.apache.spark" % "spark-sql_2.10" % "1.3.1",
-  "org.apache.spark" % "spark-hive_2.10" % "1.3.1",
-  "log4j" % "log4j" % "1.2.15" exclude("javax.jms", "jms") exclude("com.sun.jdmk", "jmxtools") exclude("com.sun.jmx", "jmxri"),
+  "org.apache.spark" % "spark-core_2.10" % "1.3.1" % "provided",
+  "org.apache.spark" % "spark-sql_2.10" % "1.3.1" % "provided",
+  "org.apache.spark" % "spark-hive_2.10" % "1.3.1" % "provided",
+  "org.slf4j" % "slf4j-log4j12" % "1.7.13" % "provided",
   "me.lessis" %% "courier" % "0.1.3",
-  "com.github.nscala-time" %% "nscala-time" % "2.10.0"
+  "com.github.nscala-time" %% "nscala-time" % "2.10.0",
+  "org.scalatest" % "scalatest_2.10" % "2.2.1" % "test"
 )
 
-excludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
- cp filter {x => x.data.getName.matches("sbt.*") || x.data.getName.matches(".*macros.*") || x.data.getName.matches("spark.*")}
+assemblyMergeStrategy in assembly := {
+  case PathList("javax", "servlet", xs@_*) => MergeStrategy.first
+  case PathList("org", "apache", xs@_*) => MergeStrategy.first
+  case PathList("com", "esotericsoftware", xs@_*) => MergeStrategy.first
+  case x =>
+    val oldStrategy = (assemblyMergeStrategy in assembly).value
+    oldStrategy(x)
 }
