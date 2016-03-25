@@ -75,13 +75,13 @@ class HdfsAnalyzerAppTest extends FunSuite with BeforeAndAfterAll with BeforeAnd
       .collect()
 
     val expectations = Map(
-      "projectA" ->("0.12", 3, 1447941540), // 2015-11-19 14:59 GMT+1
-      "projectB" ->("0.02", 1, 1447811940)  // 2015-11-18 02:59 GMT+1
+      "projectA" ->(0.11802313383668661, 3, 1447941540),  // 2015-11-19 14:59 GMT+1
+      "projectB" ->(0.0207145931199193, 1, 1447811940)    // 2015-11-18 02:59 GMT+1
     )
 
     for (res <- results) {
       val projectName = res.getString(0)
-      val totalSizeGb = "%.2f".format(res.getDouble(1))
+      val totalSizeGb = res.getDouble(1)
       val filesCount = res.getLong(2)
       val modTime = res.getInt(3)
       assert(expectations(projectName) === (totalSizeGb, filesCount, modTime))
