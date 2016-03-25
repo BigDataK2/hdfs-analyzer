@@ -7,9 +7,9 @@ object SparkContextFactory {
 
   private val conf = new SparkConf()
     .setAppName("TestEnv")
-    .setMaster("local[4]")
+    .setMaster("local[1]")
     .set("spark.executor.memory", "1g")
-    .set("spark.driver.allowMultipleContexts", "true")
+    //.set("spark.driver.allowMultipleContexts", "true")
 
   private val sc: SparkContext = new SparkContext(conf)
   private val sqlContext: TestHiveContext = new TestHiveContext(sc)
