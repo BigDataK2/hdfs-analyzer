@@ -25,22 +25,23 @@ object HdfsAnalyzer {
   }
 
   private def aggregateUsage(projectAndHdfsObjectRDD: RDD[(Project, HdfsObject)]): Array[ProjectUsage] = {
-    val zeroValue = (0L, 0L, 0L)
-    val accumulateNewHdfsObject = (acc: (Long, Long, Long), elem: HdfsObject) => acc match {
-      case (size, count, tstamp) => (size + elem.fileSize * elem.replication, count + 1, takeNewer(tstamp, elem))
+    val zeroValue = (0L, 0L, 0L, 0L)
+    val accumulateNewHdfsObject = (acc: (Long, Long, Long, Long), elem: HdfsObject) => acc match {
+      case (size, count, tstamp, accessTime) => (size + elem.fileSize * elem.replication, count + 1,
+        takeNewer(tstamp, elem.modTime), takeNewer(accessTime, elem.accessTime))
     }
-    val mergePartitions = (a: (Long, Long, Long), b: (Long, Long, Long)) => (a, b) match {
-      case ((s1, c1, t1), (s2, c2, t2)) => (s1 + s2, c1 + c2, takeNewerTimestamp(t1, t2))
+    val mergePartitions = (a: (Long, Long, Long, Long), b: (Long, Long, Long, Long)) => (a, b) match {
+      case ((s1, c1, t1, at1), (s2, c2, t2, at2)) => (s1 + s2, c1 + c2, takeNewerTimestamp(t1, t2), takeNewerTimestamp(at1, at2))
     }
 
     projectAndHdfsObjectRDD
       .aggregateByKey(zeroValue)(accumulateNewHdfsObject, mergePartitions)
-      .map { case (project, (size, filesCount, modTimestamp)) => ProjectUsage(project, size, filesCount, modTimestamp) }
+      .map { case (project, (size, filesCount, modTimestamp, accessTime)) => ProjectUsage(project, size, filesCount, modTimestamp, accessTime) }
       .collect()
   }
 
-  private def takeNewer(timestamp: Long, elem: HdfsObject) = {
-    takeNewerTimestamp(timestamp, FsImageTimeConverter.toUnixTimestamp(elem.modTime))
+  private def takeNewer(timestamp: Long, modTime: String) = {
+    takeNewerTimestamp(timestamp, FsImageTimeConverter.toUnixTimestamp(modTime))
   }
 
   private def takeNewerTimestamp(t1: Long, t2: Long) = if (t1 > t2) t1 else t2

@@ -45,7 +45,8 @@ class HdfsAnalyzerAppTest extends FunSuite with BeforeAndAfterAll with BeforeAnd
             project_name STRING,
             total_size_gb DOUBLE,
             total_file_count BIGINT,
-            mod_timestamp INT
+            mod_timestamp INT,
+            last_access_time INT
          )
          PARTITIONED BY (dt STRING)
          ROW FORMAT DELIMITED
@@ -69,14 +70,14 @@ class HdfsAnalyzerAppTest extends FunSuite with BeforeAndAfterAll with BeforeAnd
 
     val results = sqlContext.sql(
       s"""
-          SELECT project_name, total_size_gb, total_file_count, mod_timestamp
+          SELECT project_name, total_size_gb, total_file_count, mod_timestamp, last_access_time
           FROM stats.usage_report WHERE dt=$dt
         """.stripMargin)
       .collect()
 
     val expectations = Map(
-      "projectA" ->(0.11802313383668661, 3, 1447941540),  // 2015-11-19 14:59 GMT+1
-      "projectB" ->(0.0207145931199193, 1, 1447811940)    // 2015-11-18 02:59 GMT+1
+      "projectA" ->(0.11802313383668661, 3, 1447941540, 1447984740),  // 2015-11-19 14:59 GMT+1
+      "projectB" ->(0.0207145931199193, 1, 1447811940, 1447898340)    // 2015-11-18 02:59 GMT+1
     )
 
     for (res <- results) {
@@ -84,7 +85,8 @@ class HdfsAnalyzerAppTest extends FunSuite with BeforeAndAfterAll with BeforeAnd
       val totalSizeGb = res.getDouble(1)
       val filesCount = res.getLong(2)
       val modTime = res.getInt(3)
-      assert(expectations(projectName) === (totalSizeGb, filesCount, modTime))
+      val accessTime = res.getInt(4)
+      assert(expectations(projectName) === (totalSizeGb, filesCount, modTime, accessTime))
     }
   }
 

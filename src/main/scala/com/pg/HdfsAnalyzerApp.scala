@@ -64,7 +64,8 @@ object HdfsAnalyzerApp {
             projectName,
             size,
             filesCount,
-            modTimestamp
+            modTimestamp,
+            accessTime
          FROM $tmpTable
        """.stripMargin)
   }
